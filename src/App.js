@@ -3,6 +3,14 @@
 import { useState, useEffect, useRef } from "react"
 import "./index.css"
 
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = 'https://oohgpvwfyvyqtfuvossu.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vaGdwdndmeXZ5cXRmdXZvc3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5MTcxMDAsImV4cCI6MjA2MzQ5MzEwMH0.LfqrA-VFwSdzdzVT0Fe9shQSE54hdDyIG6SiYtq200M';
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+
 // =============================================
 // PRELOADED DATA
 // =============================================
@@ -407,11 +415,43 @@ function LoginSection({ title, hint, password, setPassword, onLogin, onBack, dar
 // MAIN APP COMPONENT
 // =============================================
 function App() {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchFriends(session.user.id);
+      }
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        fetchFriends(session.user.id);
+      }
+    });
+
+    return () => listener.subscription.unsubscribe();
+    // eslint-disable-next-line
+  }, []);
+
+  const fetchFriends = async (userId) => {
+    const { data, error } = await supabase
+      .from('friends')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      showToast("Failed to fetch friends", "error");
+    } else {
+      setFriends(data);
+    }
+  };
+
   // =============================================
   // STATE MANAGEMENT
   // =============================================
 
   // Theme state
+  // eslint-disable-next-line
   const [darkMode, setDarkMode] = useLocalStorage("darkMode", false)
 
   // Toast notification state
@@ -453,6 +493,7 @@ function App() {
   const [eventText, setEventText] = useState("")
   const [missionText, setMissionText] = useState("")
   const [missionTitle, setMissionTitle] = useState("")
+  // eslint-disable-next-line
   const [herCaption, setHerCaption] = useState("")
 
   // =============================================
@@ -468,6 +509,7 @@ function App() {
     }
   }, [darkMode])
 
+
   // =============================================
   // UTILITY FUNCTIONS
   // =============================================
@@ -481,6 +523,7 @@ function App() {
   }
 
   // Export data function
+  // eslint-disable-next-line
   const exportData = () => {
     try {
       const data = {
@@ -509,6 +552,7 @@ function App() {
   }
 
   // Import data function
+  // eslint-disable-next-line
   const importData = (e) => {
     const file = e.target.files[0]
     if (!file) return
